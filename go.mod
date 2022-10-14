@@ -1,4 +1,4 @@
-module PDD_Muti
+module pdd_muti
 
 go 1.18
 
