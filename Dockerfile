@@ -7,5 +7,5 @@ ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
 RUN go build /app/
 
 FROM scratch
-COPY --from=0 /app/gindemo .
-CMD ["./gindemo"]
+COPY --from=0 /app/pdd_muti .
+CMD ["./pdd_muti"]
