@@ -1,13 +1,11 @@
-FROM golang
-RUN mkdir /app
-COPY . /app/
+FROM golang as builder
 WORKDIR /app/
-ENV CGO_ENABLED=0
+COPY . .
 ENV GOPROXY=https://mirrors.aliyun.com/goproxy/
-RUN go build /app/
+ENV CGO_ENABLED=0
+RUN go build .
 
-FROM scratch
-RUN mkdir /app
+FROM busybox as runner
 WORKDIR /app/
-COPY --from=0 /app/pdd_muti .
+COPY --from=builder /app/ /app/
 CMD ["./pdd_muti"]
