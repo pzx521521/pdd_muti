@@ -10,8 +10,17 @@
 <div id="result"></div>
 <div id="app">
     <div id="addOders" v-if="page==0">
-        <h4>你创建订单后
-            <br/>
+        <h4>你创建订单后, 可以用手机摄像头扫描</h4>
+        <div id="camera">
+            <el-button @click="ShowCamera()">打开摄像头</el-button>
+            <div id="loadingMessage">🎥 Unable to access video stream (please make sure you have a webcam enabled)</div>
+            <canvas id="canvas" hidden></canvas>
+            <div id="output" hidden>
+                <div id="outputMessage">No QR code detected.</div>
+                <div hidden><b>Data:</b> <span id="outputData"></span></div>
+            </div>
+        </div>
+        <h4>
             可以通过分享->复制图片, 然后把图片传到这里
             <br/>
             将帮您自动识别到图片中二维码的订单号
@@ -149,9 +158,15 @@
         mounted () {
             // 将Vue方法传到全局对象window中
             window.MyNotify = this.MyNotify
-            window.SetOrderID= this.SetOrderID
+            window.SetOrderIDByCodeData= this.SetOrderIDByCodeData
         },
         methods:{
+            ShowCamera(){
+                this.$nextTick(()=>{
+                    InitCameraDom()
+                    OpenCamera()
+                })
+            },
             GetTime(time){
                 var unixTimestamp = new Date(time);
                 return unixTimestamp.toLocaleString()
@@ -197,9 +212,11 @@
                     type: type,
                 })
             },
-            SetOrderID(orderID){
-                this.orderID = orderID
+            SetOrderIDByCodeData(qrUrl){
+                var orderId = qrUrl.match(/(\d+)/g)[1]
+                this.orderID = orderId
                 this.isTips = true
+                this.MyNotify("请点击上传, 分享该订单", "识别成功:" + orderId, "success");
             },
             GetOrders(index, good){
                 axios.get('/GetOrders?good_id='+ good.goods_id)
@@ -260,16 +277,81 @@
                 imageData.height, // 高度
             );
             if(code){
-                qrUrl = code.data
-                orderId = qrUrl.match(/(\d+)/g)[1]
-                SetOrderID(orderId)
-                MyNotify("请点击上传, 分享该订单", "识别成功:" + orderId, "success");
+                SetOrderIDByCodeData(code.data)
             }else{
                 MyNotify("识别错误","二维码识别错误", "error");
             }
         };
     }
+    var video = document.createElement("video");
+    var canvasElement = document.getElementById("canvas");
+    var canvas = canvasElement.getContext("2d");
+    var loadingMessage = document.getElementById("loadingMessage");
+    var outputContainer = document.getElementById("output");
+    var outputMessage = document.getElementById("outputMessage");
+    var outputData = document.getElementById("outputData");
+    function InitCameraDom(){
+        video = document.createElement("video");
+        canvasElement = document.getElementById("canvas");
+        canvas = canvasElement.getContext("2d");
+        loadingMessage = document.getElementById("loadingMessage");
+        outputContainer = document.getElementById("output");
+        outputMessage = document.getElementById("outputMessage");
+        outputData = document.getElementById("outputData");
+    }
+    function drawLine(begin, end, color) {
+        canvas.beginPath();
+        canvas.moveTo(begin.x, begin.y);
+        canvas.lineTo(end.x, end.y);
+        canvas.lineWidth = 4;
+        canvas.strokeStyle = color;
+        canvas.stroke();
+    }
+    function OpenCamera(){
+        // Use facingMode: environment to attemt to get the front camera on phones
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(stream) {
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
+            video.play();
+            requestAnimationFrame(tick);
+        });
+    }
 
+
+    function tick() {
+        loadingMessage.innerText = "⌛ Loading video..."
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            loadingMessage.hidden = true;
+            canvasElement.hidden = false;
+            outputContainer.hidden = false;
+
+            canvasElement.height = video.videoHeight;
+            canvasElement.width = video.videoWidth;
+            canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+            var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+            var code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+            });
+            if (code) {
+                drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF3B58");
+                drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF3B58");
+                drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF3B58");
+                drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
+                outputMessage.hidden = true;
+                outputData.parentElement.hidden = false;
+                outputData.innerText = code.data;
+                outputMessage.hidden = true;
+                SetOrderIDByCodeData(code.data);
+                console.log(code.data);
+                video.srcObject.getTracks()[0].stop();
+                return;
+            } else {
+                outputMessage.hidden = false;
+                outputData.parentElement.hidden = true;
+            }
+        }
+        requestAnimationFrame(tick);
+    }
 </script>
 </body>
 </html>
