@@ -1,6 +1,7 @@
 package main
 
 import (
+	"PDD_Muti/assets/html"
 	"PDD_Muti/data"
 	"bytes"
 	"encoding/gob"
@@ -45,4 +46,9 @@ func Test_DBSaveLoad(t *testing.T) {
 		return
 	}
 	fmt.Printf("%v\n", m)
+}
+
+func TestEmbed(t *testing.T) {
+	data1, _ := html.Static.ReadFile("index.html")
+	fmt.Printf("%s\n", data1)
 }

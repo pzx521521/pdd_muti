@@ -1,8 +1,11 @@
 package main
 
 import (
+	"PDD_Muti/assets/html"
 	"PDD_Muti/data"
 	"github.com/gin-gonic/gin"
+	"net/http"
+	"runtime"
 	"strconv"
 )
 
@@ -17,14 +20,19 @@ func init() {
 
 func main() {
 	go DBSave()
-
 	r := gin.Default()
-	r.Static("/static", "./html")
+	//r.StaticFS("/html", http.Dir("./assets/html"))
+	r.StaticFS("/html", http.FS(html.Static))
 	r.GET("/GetGoods", GetGoods)
 	r.GET("/GetOrders", GetOrders)
 	r.GET("/AddOrder", AddOrder)
 	r.GET("/SaveDB", SaveDB)
-	r.Run(":80")
+	if runtime.GOOS == "windows" {
+		r.Run(":80")
+	} else {
+		r.Run(":8080")
+	}
+
 }
 func SaveDB(c *gin.Context) {
 	ClearEndTimeMsOrder()

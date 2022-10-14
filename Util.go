@@ -1,15 +1,27 @@
 package main
 
 import (
+	"PDD_Muti/assets"
 	"PDD_Muti/data"
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
+)
+
+var (
+	CST_PPD_PRE = "http://mobile.yangkeduo.com/"
+	//一定要加 __rp_name=brand_amazing_price_group 否则会没有信息
+	CST_PPD_PINCARD_ASK = CST_PPD_PRE + "pincard_ask.html?__rp_name=brand_amazing_price_group&group_order_id="
+	CST_PPD_GROUP       = "group.html?group_order_id="
 )
 
 func GetCookie() string {
@@ -21,8 +33,7 @@ func GetCookie() string {
 	//这里使用抓包, 抓的微信小程序的PDDAccessToken
 	//是否有过期时间  暂时不知道
 	//此文件不做上传, 防止账号泄漏
-	bPDDAccessToken, _ := os.ReadFile("./PDDAccessToken")
-	PDDAccessToken := strings.Trim(string(bPDDAccessToken), "\n")
+	PDDAccessToken := strings.Trim(string(assets.PDDAccessToken), "\n")
 
 	cookies := []string{
 		"api_uid=Ck65RGMhdYh/cwBmFYBmAg==",
@@ -134,4 +145,52 @@ func GetGoodInfo(order *data.Order) (*data.Good, error) {
 		return nil, err
 	}
 	return good, nil
+}
+
+func DBSave() {
+	t := time.NewTicker(time.Hour)
+	defer t.Stop()
+	for {
+		<-t.C
+		ClearEndTimeMsOrder()
+		DoDBSave()
+	}
+}
+
+func ClearEndTimeMsOrder() {
+	now := time.Now().Unix() * 1000
+	for _, good := range DB {
+		for i2 := len(good.Orders) - 1; i2 >= 0; i2-- {
+			order := good.Orders[i2]
+			if order.EndTimeMs < now {
+				good.Orders = append(good.Orders[:i2], good.Orders[i2+1:]...)
+			}
+		}
+	}
+}
+
+func DoDBSave() {
+	buf := bytes.Buffer{}
+	if err := gob.NewEncoder(&buf).Encode(DB); err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+	os.Remove("./db.db")
+	os.WriteFile("./db.db", buf.Bytes(), 0666)
+}
+
+func DBLoad() {
+	data, err := os.ReadFile("./db.db")
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+	decoder := gob.NewDecoder(bytes.NewBuffer(data))
+	// 进行反序列化
+	err = decoder.Decode(&DB)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+	fmt.Printf("%v\n", DB)
 }
