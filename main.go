@@ -22,7 +22,7 @@ func main() {
 	go DBSave()
 	r := gin.Default()
 	//r.StaticFS("/html", http.Dir("./assets/html"))
-	r.StaticFS("/html", http.FS(html.Static))
+	r.StaticFS("/pdd", http.FS(html.Static))
 	r.GET("/GetGoods", GetGoods)
 	r.GET("/GetOrders", GetOrders)
 	r.GET("/AddOrder", AddOrder)
