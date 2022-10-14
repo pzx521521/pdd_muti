@@ -217,6 +217,7 @@
                 this.orderID = orderId
                 this.isTips = true
                 this.MyNotify("请点击上传, 分享该订单", "识别成功:" + orderId, "success");
+                this.AddOrder();
             },
             GetOrders(index, good){
                 axios.get('/GetOrders?good_id='+ good.goods_id)
@@ -341,10 +342,12 @@
                 outputData.parentElement.hidden = false;
                 outputData.innerText = code.data;
                 outputMessage.hidden = true;
-                SetOrderIDByCodeData(code.data);
-                console.log(code.data);
-                video.srcObject.getTracks()[0].stop();
-                return;
+                if(code.data.indexOf("http") > -1){
+                    SetOrderIDByCodeData(code.data);
+                    console.log(code.data);
+                    video.srcObject.getTracks()[0].stop();
+                    return;
+                }
             } else {
                 outputMessage.hidden = false;
                 outputData.parentElement.hidden = true;
