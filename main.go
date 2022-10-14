@@ -1,10 +1,10 @@
 package main
 
 import (
-	"PDD_Muti/assets/html"
-	"PDD_Muti/data"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"pdd_muti/assets/html"
+	"pdd_muti/data"
 	"runtime"
 	"strconv"
 )

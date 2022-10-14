@@ -1,8 +1,6 @@
 package main
 
 import (
-	"PDD_Muti/assets"
-	"PDD_Muti/data"
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
@@ -11,6 +9,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"pdd_muti/assets"
+	"pdd_muti/data"
 	"regexp"
 	"strconv"
 	"strings"
