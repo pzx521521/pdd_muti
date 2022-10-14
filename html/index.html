@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>获取所有商品</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/element-plus/2.2.17/index.css"/>
+</head>
+<body>
+<canvas id="qrCanvas" style="display:none;"></canvas>
+<div id="result"></div>
+<div id="app">
+    <div id="addOders" v-if="page==0">
+        <h4>你创建订单后
+            <br/>
+            可以通过分享->复制图片, 然后把图片传到这里
+            <br/>
+            将帮您自动识别到图片中二维码的订单号
+            <br/>
+            请确定订单号后点击上传
+        </h4>
+        <el-upload class="upload-demo" drag :http-request="GetidByQrcode">
+            <div class="el-upload__text">
+                Drop file here or <em>click to upload</em>
+            </div>
+        </el-upload>
+        <h4>您也可以通过订单号直接添加订单:<br/>
+            订单号,可以在app中查询
+        </h4>
+        <el-row :gutter="24">
+            <el-col :span="18">
+                <el-input v-model="orderID" placeholder="输入订单编号" />
+            </el-col>
+            <el-col :span="4">
+                <el-button @click="AddOrder" :class="{'el-button--danger': isTips} ">上传</el-button>
+            </el-col>
+        </el-row>
+    </div>
+    <div id="allGoods" v-if="page==1">
+        <el-button @click="page=0">添加订单</el-button>
+        <el-table :data="fileterData">
+            <el-table-column label="商品ID" prop="goods_id"  width="80"></el-table-column>
+            <el-table-column label="商品名称" prop="goodsName"></el-table-column>
+            <el-table-column label="价格" prop="activityPriceGetGoods" width="100"></el-table-column>
+            <el-table-column label="需要人数" prop="customerNumWording"  width="100"></el-table-column>
+            <el-table-column align="right">
+                <template #header>
+                    <el-input v-model="search" size="small" placeholder="Type to search"></el-input>
+                </template>
+                <template #default="scope">
+                    <el-button size="large" @click="GetOrders(scope.$index, scope.row)">
+                        查看所有订单
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+    </div>
+    <div id="allOrders" v-if="page==2">
+        <el-button @click="page=1">返回商品列表</el-button>
+        <el-table
+                :data="allOrders"
+                :default-sort="{ prop: 'endTimeMs', order: 'descending' }"
+                style="width: 100%">
+            <el-table-column label="商品ID" prop="goods_id"></el-table-column>
+            <el-table-column label="订单ID" prop="orderID"></el-table-column>
+            <el-table-column label="订单属于用户的ID" prop="userID"></el-table-column>
+            <el-table-column label="结束时间" sortable>
+                <template #default="scope">
+                    <span>{{
+                        GetTime(scope.row.endTimeMs)
+                        }}</span>
+                </template>
+            </el-table-column>
+            <el-table-column label="剩余时间">
+                <template #default="scope">
+                    <span>{{
+                        LeftTime(scope.row.endTimeMs)
+                    }}</span>
+                </template>
+            </el-table-column>
+            <el-table-column align="right">
+                <template #default="scope">
+                    <el-button size="large" @click="GetQRCode(scope.$index, scope.row)">
+                        显示二维码
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <el-dialog v-model="dialogTableVisible" title="请打开网址或者扫描二维码" width="80%" center>
+            <div>
+                <div>
+                    二维码对应网址为:<div>{{shareUrl}}}</div>
+                </div>
+                <div id="ShareQR"></div>
+            </div>
+            <template #footer>
+              <span class="dialog-footer">
+                <el-button type="primary" @click="dialogTableVisible = false">确定</el-button>
+              </span>
+            </template>
+        </el-dialog>
+    </div>
+</div>
+<script src="dist_arale-qrcode_3.0.5_index.js"></script>
+<script src="jsQR.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/vue/3.2.40/vue.global.prod.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/element-plus/2.2.17/index.full.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/axios/1.1.2/axios.min.js"></script>
+<script>
+    const App = {
+        data() {
+            return {
+                page: 1,
+                allGoods: [],
+                allOrders: [],
+                search: "",
+                orderID:"",
+                qrUrl:"",
+                shareUrl:"",
+                isTips: false,
+                dialogTableVisible: false,
+            }
+        },
+        computed:{
+            fileterData(){
+                if (!this.search ) {
+                    return this.allGoods
+                }
+                return this.allGoods.filter(
+                    data => (data.goodsName+data.activityPriceGetGoods+data.customerNumWording).toLowerCase().includes(
+                        this.search.toLowerCase())
+                )
+            }
+        },
+        //在实例生成之前会自动执行的函数
+        created() {
+            that = this
+            axios.get('/GetGoods')
+                .then(function (response) {
+                    if(response.status == 200){
+                        for(let key in response.data){
+                            that.allGoods.push(response.data[key])
+                        }
+                    }
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+        },
+        mounted () {
+            // 将Vue方法传到全局对象window中
+            window.MyNotify = this.MyNotify
+            window.SetOrderID= this.SetOrderID
+        },
+        methods:{
+            GetTime(time){
+                var unixTimestamp = new Date(time);
+                return unixTimestamp.toLocaleString()
+            },
+            LeftTime(time){
+                var unixTimestamp = new Date(time);
+                var now = new Date().getTime();
+                var left = parseInt((time - now) /1000 / 60 / 60);
+                return left + "小时"
+            },
+            GetQRCode(index, order){
+                this.shareUrl = "https://mobile.yangkeduo.com/group.html?group_order_id="+order.orderID
+                var codeFigure = new AraleQRCode({
+                    "render":  "svg",  // 生成的类型 'svg' or 'table'
+                    "text": this.shareUrl, // 需要生成二维码的链接
+                    "size": 240 // 生成二维码大小
+                });
+                this.dialogTableVisible = true
+                this.$nextTick(()=>{
+                    var shareQR = document.getElementById('ShareQR');
+                    shareQR.innerHTML = ""
+                    shareQR.appendChild(codeFigure);
+                })
+            },
+            GetidByQrcode(data){
+                var file = data.file;
+                if(window.FileReader) {
+                    var fileReader = new FileReader();
+                    fileReader.readAsDataURL(file);
+                    fileReader.onloadend = function (event) {
+                        var base64Data = event.target.result;
+                        base64ToqR(base64Data)
+                    }
+                }
+            },
+            MyNotify(title, msg, type){
+                if(type==""){
+                    type = "info"
+                }
+                this.$notify({
+                    title: title,
+                    message: msg,
+                    type: type,
+                })
+            },
+            SetOrderID(orderID){
+                this.orderID = orderID
+                this.isTips = true
+            },
+            GetOrders(index, good){
+                axios.get('/GetOrders?good_id='+ good.goods_id)
+                    .then(function (response) {
+                        if(response.data instanceof Array && response.status == 200 ){
+                            that.allOrders = response.data
+                            that.page = 2
+                        }else{
+                            this.MyNotify(response.data, "")
+                        }
+                    })
+                    .catch(function (error) {
+
+                    });
+            },
+            AddOrder(){
+                that = this
+                axios.get('/AddOrder?order_id='+ this.orderID)
+                    .then(function (response) {
+                        if(response.data instanceof Array && response.status == 200 ){
+                            that.allOrders = response.data
+                            this.isTips = false
+                            that.page = 2
+                            this.MyNotify("添加成功!", "")
+                        }else{
+                            this.MyNotify(response.data, "")
+                        }
+                    })
+                    .catch(function (error) {
+                        this.MyNotify("服务器解析订单失败", "")
+                    });
+            }
+        },
+    }
+
+    const app = Vue.createApp(App)
+    app.use(ElementPlus)
+    app.mount('#app')
+
+
+    function base64ToqR(data) {
+        var objCanvas = document.getElementById("qrCanvas");
+        var ctx = objCanvas.getContext("2d"); // 返回值是CanvasRenderingContext2D类的对象实例。
+
+        var image = new Image();
+        image.src = data;
+
+        image.onload = function() {
+            var objCanvas = document.getElementById("qrCanvas");
+            objCanvas.width = image.width
+            objCanvas.height = image.height
+            ctx.drawImage(image, 0, 0, image.width, image.height); // 绘图
+            var imageData = ctx.getImageData(0, 0, image.width, image.height);
+            // QR码解析
+            const code = jsQR(
+                imageData.data,   // 图像数据
+                imageData.width,  // 宽度
+                imageData.height, // 高度
+            );
+            if(code){
+                qrUrl = code.data
+                orderId = qrUrl.match(/(\d+)/g)[1]
+                SetOrderID(orderId)
+                MyNotify("请点击上传, 分享该订单", "识别成功:" + orderId, "success");
+            }else{
+                MyNotify("识别错误","二维码识别错误", "error");
+            }
+        };
+    }
+
+</script>
+</body>
+</html>
