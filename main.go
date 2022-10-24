@@ -27,6 +27,9 @@ func main() {
 	r.GET("/GetOrders", GetOrders)
 	r.GET("/AddOrder", AddOrder)
 	r.GET("/SaveDB", SaveDB)
+	r.GET("/", func(context *gin.Context) {
+		context.Writer.WriteString("welcome to para's website")
+	})
 	if runtime.GOOS == "windows" {
 		r.Run(":80")
 	} else {
