@@ -1,12 +1,13 @@
 package main
 
 import (
-	"PDD_Muti/assets/html"
-	"PDD_Muti/data"
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"net/http"
 	"os"
+	"pdd_muti/assets/html"
+	"pdd_muti/data"
 	"testing"
 )
 
@@ -51,4 +52,10 @@ func Test_DBSaveLoad(t *testing.T) {
 func TestEmbed(t *testing.T) {
 	data1, _ := html.Static.ReadFile("index.html")
 	fmt.Printf("%s\n", data1)
+}
+func TestHttp(t *testing.T) {
+	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Write([]byte("hello frp"))
+	})
+	http.ListenAndServe(":8080", nil)
 }

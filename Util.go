@@ -55,9 +55,9 @@ func GetCookie() string {
 	}
 	return ans
 }
-func getHtml(group_order_id int64) ([]byte, error) {
+func getHtml(group_order_id string) ([]byte, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", CST_PPD_PINCARD_ASK+strconv.FormatInt(group_order_id, 10), nil)
+	req, err := http.NewRequest("GET", CST_PPD_PINCARD_ASK+group_order_id, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -5,16 +5,15 @@ import (
 	"net/http"
 	"pdd_muti/assets/html"
 	"pdd_muti/data"
-	"runtime"
 	"strconv"
 )
 
 var DB map[int64]*data.Good
-var AllOrderFilter map[int64]*data.Order
+var AllOrderFilter map[string]*data.Order
 
 func init() {
 	DB = make(map[int64]*data.Good)
-	AllOrderFilter = make(map[int64]*data.Order)
+	AllOrderFilter = make(map[string]*data.Order)
 	DBLoad()
 }
 
@@ -27,15 +26,11 @@ func main() {
 	r.GET("/GetOrders", GetOrders)
 	r.GET("/AddOrder", AddOrder)
 	r.GET("/SaveDB", SaveDB)
+	r.GET("/ClearDB", SaveDB)
 	r.GET("/", func(context *gin.Context) {
 		context.Writer.WriteString("welcome to para's website")
 	})
-	if runtime.GOOS == "windows" {
-		r.Run(":80")
-	} else {
-		r.Run(":8080")
-	}
-
+	r.Run(":8080")
 }
 func SaveDB(c *gin.Context) {
 	ClearEndTimeMsOrder()
@@ -54,7 +49,7 @@ func GetOrders(c *gin.Context) {
 }
 
 func AddOrder(c *gin.Context) {
-	order_id, _ := strconv.ParseInt(c.Query("order_id"), 10, 64)
+	order_id := c.Query("order_id")
 	if AllOrderFilter[order_id] != nil {
 		c.JSON(201, "已经添加过了哦")
 		return

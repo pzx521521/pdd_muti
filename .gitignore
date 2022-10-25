@@ -1,3 +1,4 @@
-.git
-.idea
+.git/
+.idea/
 pdd_muti.exe
+start.bat

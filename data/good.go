@@ -9,8 +9,8 @@ type Good struct {
 }
 
 type Order struct {
-	Goods_id  int64 `json:"goods_id"`
-	OrderID   int64 `json:"orderID"`
-	UserID    int64 `json:"userID"`
-	EndTimeMs int64 `json:"endTimeMs"`
+	Goods_id  int64  `json:"goods_id"`
+	OrderID   string `json:"orderID"`
+	UserID    int64  `json:"userID"`
+	EndTimeMs int64  `json:"endTimeMs"`
 }

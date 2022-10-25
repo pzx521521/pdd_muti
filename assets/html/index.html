@@ -10,6 +10,7 @@
 <div id="result"></div>
 <div id="app">
     <div id="addOders" v-if="page==0">
+        <el-button @click="page=1">返回商品列表</el-button>
         <h4>你创建订单后, 可以用手机摄像头扫描</h4>
         <div id="camera">
             <el-button @click="ShowCamera()">打开摄像头</el-button>
@@ -97,7 +98,7 @@
         <el-dialog v-model="dialogTableVisible" title="请打开网址或者扫描二维码" width="80%" center>
             <div>
                 <div>
-                    二维码对应网址为:<div>{{shareUrl}}}</div>
+                    二维码对应网址为:<div>{{shareUrl}}</div>
                 </div>
                 <div id="ShareQR"></div>
             </div>
@@ -168,17 +169,23 @@
                 })
             },
             GetTime(time){
+                if (time==undefined || time==0){
+                    return "服务器账号未能获得该商品拼团的权限"
+                }
                 var unixTimestamp = new Date(time);
                 return unixTimestamp.toLocaleString()
             },
             LeftTime(time){
+                if (time==undefined || time==0){
+                    return "服务器账号未能获得该商品拼团的权限"
+                }
                 var unixTimestamp = new Date(time);
                 var now = new Date().getTime();
                 var left = parseInt((time - now) /1000 / 60 / 60);
                 return left + "小时"
             },
             GetQRCode(index, order){
-                this.shareUrl = "https://mobile.yangkeduo.com/group.html?group_order_id="+order.orderID
+                this.shareUrl = "https://mobile.yangkeduo.com/group7.html?group_order_id="+order.orderID
                 var codeFigure = new AraleQRCode({
                     "render":  "svg",  // 生成的类型 'svg' or 'table'
                     "text": this.shareUrl, // 需要生成二维码的链接
